@@ -1,0 +1,234 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PathBot A* - Robot Pathfinding Visualizer</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- Top Navigation & Brand Header -->
+  <header class="project-header">
+    <div class="header-content">
+      <div class="brand-container">
+        <div class="brand-logo">
+          <span class="logo-icon">🤖</span>
+          <span class="brand-name">PathBot <span class="accent-star">A*</span></span>
+        </div>
+        <span class="brand-tag">Robot Pathfinding Visualizer</span>
+      </div>
+      <h1 class="main-title">Robot Pathfinding Using A* Algorithm</h1>
+      <p class="subtitle">
+        Visualize how the A* algorithm finds an efficient shortest path for a robot while avoiding obstacles in real-time.
+      </p>
+    </div>
+  </header>
+
+  <main class="main-container">
+
+    <!-- Controls Toolbar -->
+    <section class="controls-card">
+      <div class="primary-buttons">
+        <button id="findPathBtn" class="btn btn-primary" title="Run A* Pathfinding">
+          <span class="btn-icon">▶</span> Find Path
+        </button>
+        <button id="clearObstaclesBtn" class="btn btn-secondary" title="Remove all obstacles">
+          <span class="btn-icon">🧹</span> Clear Obstacles
+        </button>
+        <button id="resetGridBtn" class="btn btn-secondary" title="Reset everything to default">
+          <span class="btn-icon">🔄</span> Reset Grid
+        </button>
+      </div>
+
+      <div class="control-presets">
+        <label for="presetSelect" class="control-label">Sample Mazes:</label>
+        <select id="presetSelect" class="custom-select">
+          <option value="none">-- Select Sample Maze --</option>
+          <option value="poster-maze">1. Poster Reference Maze (Sample Layout)</option>
+          <option value="simple-wall">2. Simple Wall (Center Gap)</option>
+          <option value="double-wall">3. Double Wall (Offset Gates)</option>
+          <option value="zigzag">4. Zig-Zag Corridor (S-Curve)</option>
+          <option value="trap">5. U-Shaped Trap (Backtracking Demo)</option>
+          <option value="chokepoint">6. Narrow Chokepoint</option>
+          <option value="diagonal-steps">7. Diagonal Stepped Barrier</option>
+          <option value="spiral">8. Spiral Labyrinth</option>
+          <option value="random">9. Random Map (25% Obstacles)</option>
+          <option value="blocked">10. Fully Blocked Goal (No Path Demo)</option>
+        </select>
+      </div>
+
+      <div class="speed-control">
+        <label for="speedRange" class="control-label">Speed: <span id="speedLabel">Fast</span></label>
+        <input type="range" id="speedRange" min="1" max="3" value="3" step="1" />
+      </div>
+    </section>
+
+    <!-- Legend -->
+    <section class="legend-card">
+      <div class="legend-item"><span class="legend-box start-box">S</span> <strong>Start (S)</strong></div>
+      <div class="legend-item"><span class="legend-box goal-box">G</span> <strong>Goal (G)</strong></div>
+      <div class="legend-item"><span class="legend-box obstacle-box"></span> <strong>Obstacle</strong> (Wall)</div>
+      <div class="legend-item"><span class="legend-box explored-box"></span> <strong>Explored</strong> (Visited)</div>
+      <div class="legend-item"><span class="legend-box path-box"></span> <strong>Final Path</strong> (Shortest)</div>
+    </section>
+
+    <!-- Main Workspace Layout: Grid + Status/Details -->
+    <div class="workspace-layout">
+
+      <!-- Center Grid Panel -->
+      <section class="grid-panel">
+        <div class="grid-instruction-bar">
+          <span>💡 Click or drag across cells to draw / erase obstacles.</span>
+        </div>
+        
+        <div class="grid-wrapper">
+          <div id="grid" class="grid-container" role="grid" aria-label="15 by 15 Pathfinding Grid"></div>
+        </div>
+
+        <!-- Dynamic Success / Alert Notification Banner -->
+        <div id="notificationBanner" class="notification-banner hidden">
+          <span id="notificationIcon">✅</span>
+          <span id="notificationText">Robot reached the destination successfully!</span>
+        </div>
+      </section>
+
+      <!-- Status & Live Metrics Panel -->
+      <aside class="side-panel">
+        <div class="card status-card">
+          <h2 class="card-title">Status & Metrics</h2>
+          <div class="metrics-grid">
+            <div class="metric-box">
+              <span class="metric-label">Status</span>
+              <span id="statusVal" class="metric-value status-ready">Ready</span>
+            </div>
+            <div class="metric-box">
+              <span class="metric-label">Path Length</span>
+              <span id="pathLengthVal" class="metric-value">-</span>
+            </div>
+            <div class="metric-box">
+              <span class="metric-label">Cells Explored</span>
+              <span id="cellsExploredVal" class="metric-value">-</span>
+            </div>
+            <div class="metric-box">
+              <span class="metric-label">Grid Dimensions</span>
+              <span class="metric-value">15 × 15 (225 cells)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- How A* Works Panel -->
+        <div class="card info-card">
+          <h2 class="card-title">How A* Works</h2>
+          
+          <div class="formula-box">
+            <div class="formula-title">A* Evaluation Function</div>
+            <div class="formula-equation">f(n) = g(n) + h(n)</div>
+            <ul class="formula-list">
+              <li><strong>g(n):</strong> Cost from Start to current cell</li>
+              <li><strong>h(n):</strong> Estimated cost from current cell to Goal</li>
+              <li><strong>f(n):</strong> Total estimated cost</li>
+            </ul>
+          </div>
+
+          <div class="heuristic-box">
+            <div class="section-subtitle">Heuristic: Manhattan Distance</div>
+            <div class="code-badge">h(n) = |x1 - x2| + |y1 - y2|</div>
+            <p class="heuristic-note">
+              Measures orthogonal grid distance between cell (x1, y1) and destination (x2, y2).
+            </p>
+          </div>
+
+          <div class="movement-box">
+            <div class="section-subtitle">Movement Allowed</div>
+            <div class="movement-arrows">
+              <span class="arrow-tag">↑ Up</span>
+              <span class="arrow-tag">↓ Down</span>
+              <span class="arrow-tag">← Left</span>
+              <span class="arrow-tag">→ Right</span>
+            </div>
+            <div class="no-diagonal">❌ No diagonal movement</div>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+
+    <!-- Algorithm Theory & Comparison Section -->
+    <section class="theory-section">
+      <div class="theory-grid">
+
+        <!-- Complexity Card -->
+        <div class="card theory-card">
+          <h3 class="card-title">Algorithm Complexity</h3>
+          <div class="complexity-row">
+            <span class="complexity-type">Time Complexity:</span>
+            <span class="complexity-val">O((V + E) log V)</span>
+          </div>
+          <p class="complexity-desc">
+            Where <em>V</em> is total grid cells (225 vertices) and <em>E</em> is valid transitions (edges). Selecting the node with minimum f(n) from Open List takes logarithmic time using a Priority Queue / Min-Heap.
+          </p>
+          <div class="complexity-row">
+            <span class="complexity-type">Space Complexity:</span>
+            <span class="complexity-val">O(V)</span>
+          </div>
+          <p class="complexity-desc">
+            Stores nodes in Open List, Closed Set, and parent pointers to reconstruct the optimal shortest path.
+          </p>
+        </div>
+
+        <!-- Algorithm Comparison Card -->
+        <div class="card theory-card">
+          <h3 class="card-title">Algorithm Comparison</h3>
+          <div class="table-wrapper">
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th>Algorithm</th>
+                  <th>Path Found</th>
+                  <th>Path Cost</th>
+                  <th>Search Efficiency</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="highlight-row">
+                  <td><strong>A* (A-Star)</strong></td>
+                  <td><span class="badge-success">Yes</span></td>
+                  <td>Optimal (Shortest)</td>
+                  <td><span class="badge-high">High</span></td>
+                </tr>
+                <tr>
+                  <td><strong>BFS</strong></td>
+                  <td><span class="badge-success">Yes</span></td>
+                  <td>Optimal (Unweighted)</td>
+                  <td>Moderate</td>
+                </tr>
+                <tr>
+                  <td><strong>Dijkstra</strong></td>
+                  <td><span class="badge-success">Yes</span></td>
+                  <td>Optimal</td>
+                  <td>Moderate</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Clean Footer -->
+  <footer class="project-footer">
+    <div class="footer-content">
+      <p><strong>PathBot A*</strong> — Interactive Robot Pathfinding Visualizer</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
